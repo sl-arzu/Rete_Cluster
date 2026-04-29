@@ -1,0 +1,21 @@
+# Python
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Outputs
+outputs/
+*.pth
+*.ckpt
+
+# Data
+data/
+*.npz
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
