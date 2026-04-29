@@ -1,0 +1,98 @@
+# config.yaml — Schema di configurazione per RSNN Modulare
+# Versione: v0.1.0-spec
+
+dataset:
+  path: "data/dataset.npz"
+  split_mode: "train_val_test"       # opzioni: "train_test" | "train_val_test"
+  train_ratio: 0.70
+  val_ratio: 0.15
+  test_ratio: 0.15
+  stratify: true
+  random_seed: 42
+
+input_encoder:
+  type: "rate_poisson"               # opzioni future: "rate_poisson", "latency", "phase"
+  population_size: 10
+  # Inizializzazione pesi sinaptici input→population
+  weight_mu: 0.0
+  weight_sigma: 0.1
+  # Rumore additivo (applicato a livello neurone LIF/ALIF, NON a encoder)
+  add_noise: true
+
+hidden_layer:
+  n_neurons: 256
+  cluster_assignment: "per_population"   # o "custom" per mapping manuale
+  # Distribuzione non equa: percentuale di hidden collegati a ciascun neurone pop
+  input_conn_distribution:
+    pop_neuron_0: 0.30
+    pop_neuron_1: 0.50
+    # pop_neuron_N: ... (somma ≤ 1.0 tra orfani + connessi)
+  # Neuroni orfani (senza input diretto)
+  orphan_ratio: 0.10
+  # Vincolo architetturale: max 1 connessione dalla popolazione per hidden
+  max_input_conn_per_hidden: 1
+  # Connessioni ricorrenti
+  recurrence:
+    enabled: true
+    max_intra_cluster: 5            # connessioni dentro lo stesso cluster
+    max_inter_cluster: 3            # connessioni tra cluster diversi
+
+output_layer:
+  # Se null, il numero di neuroni è dedotto automaticamente dalle classi uniche in NPZ
+  n_neurons: null
+  # Percentuale di hidden neurons che possono collegarsi all'output
+  hidden_to_output_ratio: 0.50
+  # Massimo numero di connessioni in ingresso per singolo neurone di output
+  max_incoming_connections: 10
+
+neuron:
+  type: "LIF"                        # opzioni: "LIF" | "ALIF" | altri futuri
+  # Parametri specifici per tipo (esempi, verranno validati dal modello scelto)
+  lif:
+    tau_mem: 20.0
+    v_thresh: 1.0
+    v_reset: 0.0
+  alif:
+    tau_mem: 20.0
+    tau_adapt: 50.0
+    v_thresh: 1.0
+    v_thresh_adapt_increment: 0.1
+    v_reset: 0.0
+  # Rumore gaussiano dinamico nella forward pass (solo LIF/ALIF)
+  noise:
+    enabled: true
+    mu: 0.0
+    sigma: 0.05
+
+training:
+  algorithm: "BPTT"                  # opzioni: "BPTT" | "e-prop" | altri futuri
+  epochs: 100
+  batch_size: 32
+  learning_rate: 0.001
+  optimizer: "Adam"
+  scheduler:
+    enabled: true
+    type: "StepLR"
+    step_size: 30
+    gamma: 0.1
+  # Early stopping opzionale
+  early_stopping:
+    enabled: true
+    patience: 10
+    monitor: "val_f1_macro"
+
+hardware:
+  device: "cuda"                     # "cuda" | "mps" (Mac M1) | "cpu"
+  pin_memory: true
+  num_workers: 4
+
+paths:
+  logs: "outputs/logs"
+  checkpoints: "outputs/checkpoints"
+  plots: "outputs/plots"
+  results: "outputs/results"
+
+logging:
+  level: "INFO"                      # DEBUG | INFO | WARNING | ERROR
+  format: "%(asctime)s — %(name)s — %(levelname)s — %(message)s"
+  file: "outputs/logs/run_{{timestamp}}.log"
